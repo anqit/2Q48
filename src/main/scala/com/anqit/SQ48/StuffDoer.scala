@@ -17,7 +17,7 @@ object StuffDoer extends App {
 //            p(manager)
 //        }
 
-        var grid = Grid2();
+        val grid = Grid2();
 //        p(grid)
 //        while(grid.movesAvailable) {
 //            val m = randomMove
@@ -31,10 +31,6 @@ object StuffDoer extends App {
     }
 
     def getMdp = {
-//        override def delta(s: S, a: A): S = d(s, a)
-//        override def reward(s1: S, a: A, s2: S): Double = r(s1, a, s2)
-//        override def start = startState
-//        override def isTerminal(s: S): Boolean = t(s)
         def delta(grid: Grid2, m: Move) = grid move m
         def reward(orig: Grid2, m: Move, next: Grid2) = next.score - orig.score
         def start = Grid2()
