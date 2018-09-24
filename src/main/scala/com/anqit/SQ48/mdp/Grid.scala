@@ -23,14 +23,14 @@ class Grid private(val grid: IndexedSeq[IndexedSeq[Int]], val score: Int) extend
 
             for {
                 r <- rTraversals
-                c <- cTraversals if Grid.cellHasValue(nextGridState, r, c)
-                value <- Grid.valueAt(nextGridState, r, c)
+                c <- cTraversals if cellHasValue(nextGridState, r, c)
+                value <- valueAt(nextGridState, r, c)
                 farthestInfo = Grid.farthestPosition(nextGridState, r, c, m)
                 ((rFarthest, cFarthest), (rNext, cNext)) = farthestInfo
             } {
                 if(canMerge(nextGridState, value, rNext, cNext)) {
                     nextGridState = moveTile(nextGridState, r, c, rNext, cNext)
-                    scored += Grid.valueAt(nextGridState, rNext, cNext).get
+                    scored += valueAt(nextGridState, rNext, cNext).get
                     merged(rNext)(cNext) = true
                 } else {
                     nextGridState = moveTile(nextGridState, r, c, rFarthest, cFarthest)
@@ -48,10 +48,12 @@ class Grid private(val grid: IndexedSeq[IndexedSeq[Int]], val score: Int) extend
         } else {
             g
         }
+
     private def insertRandomTile(): Grid = new Grid(Grid.insertRandomTile(grid), score)
 
     private def canMerge(g: IndexedSeq[IndexedSeq[Int]], value: Int, rTo: Int, cTo: Int) =
         cellHasValue(g, rTo, cTo) && isCellUnmerged(g, rTo, cTo) && valueAt(g, rTo, cTo).contains(value)
+
     private def isCellUnmerged(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int) = withinBounds(g, r, c) && !merged(r)(c)
 
     private def buildTraversals(m: Move) = {
@@ -68,30 +70,34 @@ class Grid private(val grid: IndexedSeq[IndexedSeq[Int]], val score: Int) extend
 
     def apply(r: Int, c: Int) = Grid.valueAt(grid, r, c)
 
-    override def toString = grid.map(_.map("%4d".format(_)).mkString(" | ")).mkString("\n") + s"\nScore: $score"
+    override def toString = grid.map(_.map(v => f"$v%4d").mkString(" | ")).mkString("\n") + s"\nScore: $score"
 
     override def equals(obj: Any): Boolean = obj match {
             case that: Grid => (that canEqual this) && this.score == that.score && this.grid == that.grid
             case _ => false
         }
     override def hashCode(): Int = 41 * (41 + score) + grid.hashCode()
+
     def canEqual(other: Any) = other.isInstanceOf[Grid]
 }
 
 object Grid {
     private val EMPTY_VAL = 0
 
-    def apply(size: Int = 4) = new Grid(size).insertRandomTile().insertRandomTile()
+    def apply() = new Grid(4).insertRandomTile().insertRandomTile()
 
     private def insertRandomTile(g: IndexedSeq[IndexedSeq[Int]]) =
         randomAvailableCell(g).map(p => setValue(g, p._1, p._2, if(Random.nextFloat() < 0.9 ) 2 else 4)).getOrElse(g)
+
     private def setValue(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int, value: Int) = g.updated(r, g(r).updated(c, value))
+
     private def remove(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int) = setValue(g, r, c, Grid.EMPTY_VAL)
 
     private def valueAt(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int) = (r, c) match {
-        case (_r, _c) if withinBounds(g, _r, _c) => Some(g(_r)(_c))
-        case _ => None
-    }
+            case (_r, _c) if withinBounds(g, _r, _c) => Some(g(_r)(_c))
+            case _ => None
+        }
+
     private def randomAvailableCell(g: IndexedSeq[IndexedSeq[Int]]) = {
         val cells = availableCells(g)
         cells match {
@@ -99,17 +105,24 @@ object Grid {
             case _ => cells.lift(Random.nextInt(cells.size))
         }
     }
+
     private def availableCells(g: IndexedSeq[IndexedSeq[Int]]) = for {
-        r <- g.indices
-        c <- g(r).indices if isCellAvailable(g, r, c)
-    } yield (r, c)
+            r <- g.indices
+            c <- g(r).indices if isCellAvailable(g, r, c)
+        } yield (r, c)
 
     private def movesAvailable(g: IndexedSeq[IndexedSeq[Int]]) = areAnyCellsAvailable(g) || areAnyMatchesAvailable(g)
+
     private def cellHasValue(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int) = valueAt(g, r, c).isDefined && !valueAt(g, r, c).contains(Grid.EMPTY_VAL)
+
     private def isCellAvailable(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int) = valueAt(g, r, c).contains(Grid.EMPTY_VAL)
+
     private def isCellUnavailable(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int) = !isCellAvailable(g, r, c)
+
     private def withinBounds(g: IndexedSeq[IndexedSeq[Int]], r: Int , c: Int) = r >= 0 && c >= 0 && r < g.size && c < g.size
+
     private def areAnyCellsAvailable(g: IndexedSeq[IndexedSeq[Int]]) = availableCells(g).nonEmpty
+
     private def areAnyMatchesAvailable(g: IndexedSeq[IndexedSeq[Int]]): Boolean = {
         for {
             r <- g.indices
@@ -123,6 +136,7 @@ object Grid {
 
         false
     }
+
     private def posEquals(r1: Int, c1: Int, r2: Int, c2: Int) = r1 == r2 && c1 == c2
 
     private def farthestPosition(g: IndexedSeq[IndexedSeq[Int]], r: Int, c: Int, m: Move): ((Int, Int), (Int, Int)) = {
